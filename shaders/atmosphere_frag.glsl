@@ -270,16 +270,17 @@ vec3 GetSkyRadiance(vec3 P, vec3 E, out vec3 Transmittance)
     }
     else if(r > Atmosphere.TopRadius)
     { // If we are outside the atmosphere and not looking in, return 0 (space)
+		Transmittance = vec3(1);
         return vec3(0);
     }
 
     float mu = rmu / r;
     float mu_s = dot(P, L) / r;
-    float nu = max(0.0,dot(E, L));
+    float nu = dot(E, L);
 
     float r_d = ClampRadius(sqrt(d * d + 2.0 * r * mu * d + r * r));
     float mu_d = ClampCosine((r * mu * d) / r_d);
-    bool IntersectsGround = false;//RayIntersectsGround(r, mu);
+    bool IntersectsGround = RayIntersectsGround(r, mu);
 
     Transmittance = IntersectsGround ? vec3(0.0) : GetTransmittanceToTopAtmosphereBoundary(r, mu);
     vec3 Rayleigh, Mie;
@@ -314,7 +315,7 @@ vec3 GetSkyRadianceToPoint(vec3 Camera, vec3 P, vec3 L, out vec3 Transmittance)
     float r_p = ClampRadius(sqrt(d * d + 2.0 * r * mu * d + r * r));
     float mu_p = (r * mu + d) / r_p;
     float mu_s_p = (r * mu_s + d * nu) / r_p;
-
+	return Rayleigh;
     vec3 Rayleigh_p, Mie_p;
     Rayleigh_p = GetScattering(r_p, mu_p, mu_s_p, nu, IntersectsGround, Mie_p);
 
@@ -483,7 +484,7 @@ vec3 AddSunGlare(vec3 Color, vec3 SunColor, vec3 E, vec3 L)
     uvSun.x *= AspectRatio;
 
     float viewFalloff = max(0.0, dot(E, L));
-    float horizonFalloff = max(0.0, 1.0 - exp(-1000.0*min(1.0, L.y + 1.1*Atmosphere.SunAngularRadius)));
+    float horizonFalloff = 1.0f;//max(0.0, 1.0 - exp(-1000.0*min(1.0, L.y + 1.1*Atmosphere.SunAngularRadius)));
     uvSun.y += (1.0 - horizonFalloff) * Atmosphere.SunAngularRadius * 1.1;
 
     vec3 Glare = vec3(0);
@@ -564,14 +565,7 @@ void main()
     float r = length(P);
     float mu = PdotV / r;
 
-    if(Depth > 0)
-    {
-    }
-    else
-    {
-        contrib = vec3(1,0,0);
-    }
-#if 0
+#if 1
     if(Depth > 0)
     { // earth
         vec3 Point = P + E * Depth;
@@ -587,10 +581,11 @@ void main()
         vec3 GroundRadiance = kGroundAlbedo * (1.0/PI) * (SunIrradiance + SkyIrradiance);
 
         vec3 Inscattering = GetSkyRadianceToPoint(p, Point - EarthCenter, L, Transmittance);
-        //contrib = GroundRadiance * Transmittance + Inscattering*50;
+        contrib = 1e-3*Inscattering;//1e-4*GroundRadiance * Transmittance;// * Transmittance + Inscattering;
         vec3 ReflectedSkyRadiance = max(vec3(0), GetSkyRadiance(Point-EarthCenter,reflect(E,FractN),Transmittance));
         contrib = Inscattering * 2.0 + 
                   WaterShading(ShadingPoint, Depth, FractN, E, L, ReflectedSkyRadiance, ReflectedSkyRadiance, kGroundAlbedo);
+				  contrib *=1e-4;//
     }
     else
     { // sky
@@ -624,9 +619,9 @@ void main()
     }
 
     // Get the sun radiance modulated by the transmittance color
-    SolarRadiance *= Transmittance / length(Transmittance);
+//    SolarRadiance *= Transmittance / length(Transmittance);
 
-    contrib = AddSunGlare(contrib, SolarRadiance, E, L);
+//    contrib = AddSunGlare(contrib, SolarRadiance, E, L);
     #endif
 
     frag_color = vec4(contrib, 1); 
