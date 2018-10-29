@@ -17,9 +17,10 @@ layout(std140, binding=1) uniform Params
 	float Time;
 	int GridW;
 	int GridH;
+	int GridD;
 };
 
 void main()
 {
-	color = vec4(teNormal,1);
+	color = vec4(0.05,0.05,0.05,1);
 }

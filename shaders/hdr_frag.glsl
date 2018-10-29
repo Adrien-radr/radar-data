@@ -4,13 +4,13 @@
 //#define ACCURATE_GAMMA
 
 #ifndef FXAA_REDUCE_MIN
-    #define FXAA_REDUCE_MIN   (1.0/ 16.0)
+    #define FXAA_REDUCE_MIN   (1.0/ 32.0)
 #endif
 #ifndef FXAA_REDUCE_MUL
-    #define FXAA_REDUCE_MUL   (1.0 / 2.0)
+    #define FXAA_REDUCE_MUL   (1.0 / 1.0)
 #endif
 #ifndef FXAA_SPAN_MAX
-    #define FXAA_SPAN_MAX     16.0
+    #define FXAA_SPAN_MAX     2.0
 #endif
 
 in vec2 v_texcoord;
@@ -52,6 +52,7 @@ void GetTexcoords(vec2 fragCoord, out vec2 v_rgbNE, out vec2 v_rgbNW, out vec2 v
 vec3 ToneMapping(vec3 Col, float Exposure)
 {
     return vec3(1.0) - exp(-Col * Exposure);
+//	return Col / (Col + vec3(1.0));
 }
 
 vec3 GammaCorrection(vec3 Col)
@@ -124,6 +125,7 @@ vec3 fxaa(sampler2D tex, float Exposure, vec2 fragCoord, vec2 resolution,
 
 void main()
 {
+	#if 1
     
     // NOTE - this uses the avg luminance from the current frame for automatic exposure.
     // In practice it is better to keep an histogram of it through frames to avoid flickering.
@@ -133,21 +135,22 @@ void main()
     float EV100 = ComputeEV100FromAvgLuminance(Y);
     // NOTE - arbitrary value for the min/max Exposure here. Probably this should be derived 
     // according to time of day / weather, etc
-    float Exposure = min(10.0,max(0.001,ConvertEV100ToExposure(EV100)));
+    float Exposure = 1.0;//min(10.0,max(0.001,ConvertEV100ToExposure(EV100)));
 
     // FXAA
     vec2 v_rgbNE, v_rgbNW, v_rgbSW, v_rgbSE, v_rgbM;
     GetTexcoords(gl_FragCoord.xy, v_rgbNE, v_rgbNW, v_rgbSE, v_rgbSW, v_rgbM);
 
     vec3 hdrColor = fxaa(HDRFB, Exposure, gl_FragCoord.xy, Resolution, v_rgbNW, v_rgbNE, v_rgbSW, v_rgbSE, v_rgbM);
+	#endif
 
     // Remove the auto exposure since its fucking things up, need a better more progressive way of doing i
     //float Exp = 1.00005;
-    float Exp = 0.3;
-    //float Exp = Exposure;
+//    float Exp = 1.0;
+    float Exp = Exposure;
 
     // Tone mapping and Gamma correction
-    hdrColor = texture(HDRFB, v_texcoord).xyz;
+//    vec3 hdrColor = texture(HDRFB, v_texcoord).xyz;
     hdrColor = PostProcess(hdrColor, Exp);
 
     frag_color = vec4(hdrColor, 1.0);

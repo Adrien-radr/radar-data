@@ -1,4 +1,6 @@
 #version 420
+#define lod 1
+#define MAX_TESS 128.0
 
 layout (vertices=1) out;
 
@@ -8,6 +10,7 @@ in gl_PerVertex
 } gl_in[];
 
 in vec2 vTexcoord[];
+in vec3 vCubeFace[];
 
 out gl_PerVertex
 {
@@ -16,6 +19,7 @@ out gl_PerVertex
 
 out vec2 tcTexcoord[];
 out vec2 tcLevelInner[];
+out vec3 tcCubeFace[];
 
 layout(std140, binding=1) uniform Params
 {
@@ -29,39 +33,57 @@ layout(std140, binding=1) uniform Params
 	float Time;
 	int GridW;
 	int GridH;
+	int GridD;
 };
 
 float GetTesselationLevel(float dist0, float dist1)
 {
 	float avgDist = (dist0 + dist1) / 2.0;
-	return max(1.0, min(32.0, 32.0 / sqrt(avgDist)));
+//	return max(1.0, min(MAX_TESS, MAX_TESS / (avgDist*avgDist*avgDist*avgDist)));
+	return max(1.0, min(MAX_TESS, MAX_TESS / exp(1.0*avgDist)));
 }
 
 void main()
 {
-	gl_out[gl_InvocationID].gl_Position = gl_in[gl_InvocationID].gl_Position;
+	vec4 position = gl_in[gl_InvocationID].gl_Position;
+	gl_out[gl_InvocationID].gl_Position = position;
 	tcTexcoord[gl_InvocationID] = vTexcoord[gl_InvocationID];
+	tcCubeFace[gl_InvocationID] = vCubeFace[gl_InvocationID];
 
-	gl_TessLevelOuter[0] = OuterTessFactor;
-	gl_TessLevelOuter[1] = OuterTessFactor;
-	gl_TessLevelOuter[2] = OuterTessFactor;
-	gl_TessLevelOuter[3] = OuterTessFactor;
+	#if lod
+		vec3 v0 = gl_in[0].gl_Position.xyz;
+		vec3 cf = vCubeFace[0];
 
-	gl_TessLevelInner[0] = InnerTessFactor;
-	gl_TessLevelInner[1] = InnerTessFactor;
-	tcLevelInner[gl_InvocationID] = vec2(InnerTessFactor);
+		// TODO - this keeps the parameterization as Cube faces
+		// ultimately we want the LOD to be dependent on the distance of the camera to the spherical terrain
+		vec3 v1 = v0 + vec3((cf.y+cf.z)*TileSize.x, cf.x*TileSize.x, 0);
+		vec3 v2 = v0 + vec3((cf.y+cf.z)*TileSize.x, cf.x*TileSize.x+cf.z*TileSize.y, (cf.y+cf.x)*TileSize.y);
+		vec3 v3 = v0 + vec3(0, cf.z*TileSize.y, (cf.y+cf.x)*TileSize.y);
 
-	//if(gl_InvocationID == 0)
-	//{
-	//	float vDist0 = distance(CameraPosition, tcPosition[0]);
-	//	float vDist1 = distance(CameraPosition, tcPosition[1]);
-	//	float vDist2 = distance(CameraPosition, tcPosition[2]);
-	//
-	//
-	//	gl_TessLevelOuter[0] = GetTesselationLevel(vDist1, vDist2);
-	//	gl_TessLevelOuter[1] = GetTesselationLevel(vDist0, vDist2);
-	//	gl_TessLevelOuter[2] = GetTesselationLevel(vDist0, vDist1);
-	//	
-	//	gl_TessLevelInner[0] = gl_TessLevelOuter[2];
-	//}
+		float d0 = distance(CameraPosition, v0);
+		float d1 = distance(CameraPosition, v1);
+		float d2 = distance(CameraPosition, v2);
+		float d3 = distance(CameraPosition, v3);
+
+		gl_TessLevelOuter[0] = GetTesselationLevel(d3, d0);
+		gl_TessLevelOuter[1] = GetTesselationLevel(d0, d1);
+		gl_TessLevelOuter[2] = GetTesselationLevel(d1, d2);
+		gl_TessLevelOuter[3] = GetTesselationLevel(d2, d3);
+
+		gl_TessLevelInner[0] = 0.5 * (gl_TessLevelOuter[1] + gl_TessLevelOuter[3]);
+		gl_TessLevelInner[1] = 0.5 * (gl_TessLevelOuter[0] + gl_TessLevelOuter[2]);
+		tcLevelInner[gl_InvocationID] = vec2(gl_TessLevelInner[0], gl_TessLevelInner[1]);
+	#else
+		float oTessLvl = OuterTessFactor;
+		float iTessLvl = InnerTessFactor;
+
+		gl_TessLevelOuter[0] = oTessLvl;
+		gl_TessLevelOuter[1] = oTessLvl;
+		gl_TessLevelOuter[2] = oTessLvl;
+		gl_TessLevelOuter[3] = oTessLvl;
+		
+		gl_TessLevelInner[0] = iTessLvl;
+		gl_TessLevelInner[1] = iTessLvl;
+		tcLevelInner[gl_InvocationID] = vec2(iTessLvl);
+	#endif
 }
