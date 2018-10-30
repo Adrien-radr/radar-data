@@ -43,7 +43,7 @@ void main()
 	vec2 gPos = gl_TessCoord.xy * TileSize.xz;
 	vec3 cf = tcCubeFace[0];
 	tePosition += vec3((cf.y+cf.z)*gPos.x, cf.x*gPos.x+cf.z*gPos.y, (cf.y+cf.x)*gPos.y);
-//	tePosition = normalize(tePosition);
+	tePosition = normalize(tePosition);
 
 //	float xydep = 1.5;
 //	float scale = 0.2;

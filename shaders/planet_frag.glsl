@@ -1,7 +1,7 @@
 #version 420
 
 //in vec4 tePositionEye;
-in vec3 teNormal;
+in vec3 gNormal;
 
 out vec4 color;
 
@@ -22,5 +22,16 @@ layout(std140, binding=1) uniform Params
 
 void main()
 {
+#if 0
+	float len = max(0,length(gNormal));
+	vec3 N = normalize(gNormal);
+
+	float lineWidth = 0.7; 
+	float featherWidth = 1.0 - lineWidth;
+
+	float lw = max(0, -len+lineWidth);
+	if(lw > 0) lw = 1;
+	float feather = (featherWidth - max(0, len - lineWidth))/featherWidth;
+#endif
 	color = vec4(0.05,0.05,0.05,1);
 }
