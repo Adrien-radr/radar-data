@@ -9,15 +9,14 @@ in gl_PerVertex
 
 in vec2 tcTexcoord[];
 in vec3 tcCubeFace[];
-//in vec2 tcLevelInner[];
 
 out gl_PerVertex
 {
 	vec4 gl_Position;
 };
 
-//out vec4 tePositionEye;
 out vec3 teNormal;
+out vec3 tePosition;
 
 layout(std140, binding=1) uniform Params
 {
@@ -39,11 +38,15 @@ uniform mat4 ProjMatrix;
 
 void main()
 {
-	vec3 tePosition = gl_in[0].gl_Position.xyz;
+	vec3 pos = tePosition = gl_in[0].gl_Position.xyz;
 	vec2 gPos = gl_TessCoord.xy * TileSize.xz;
 	vec3 cf = tcCubeFace[0];
-	tePosition += vec3((cf.y+cf.z)*gPos.x, cf.x*gPos.x+cf.z*gPos.y, (cf.y+cf.x)*gPos.y);
-	tePosition = normalize(tePosition);
+	pos += vec3((cf.y+cf.z)*gPos.x, cf.x*gPos.x+cf.z*gPos.y, (cf.y+cf.x)*gPos.y);
+
+	tePosition = normalize(pos);
+	vec2 sph = vec2(acos(tePosition.y/sqrt(tePosition.y*tePosition.y + tePosition.x*tePosition.x + tePosition.z*tePosition.z)),
+					atan(tePosition.z, tePosition.x));
+	tePosition += tePosition * 0.05 * sin(2.f*PI*Time+8.f*sph.x+4.f*sph.y);// * sin(2.f * PI * Time * 0.1*sph.y);
 
 //	float xydep = 1.5;
 //	float scale = 0.2;
@@ -53,7 +56,9 @@ void main()
 
 //	tePositionEye = ViewMatrix * vec4(tePosition, 1.0);
 	vec2 uv = tePosition.xz;//gl_TessCoord.xy/TileSize.xz;//tcTexcoord[0];// + (vec2(1.0/GridW, 1.0/GridH) * gl_TessCoord.xy);	
-	vec3 col = vec3(0.05,0.2, 0.4) + tePosition * vec3(0.1,0.4,0.2);
+	float sx = sph.x/(PI);
+	float sy = (sph.y+PI)/(2.0*PI);
+	vec3 col = vec3(sx, 1.f - sx, length(tePosition));
 	teNormal = col;
 
 	gl_Position = ProjMatrix * ViewMatrix * vec4(tePosition, 1.0);

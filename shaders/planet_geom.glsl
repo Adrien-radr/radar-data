@@ -14,6 +14,7 @@ in gl_PerVertex {
 } gl_in[];
 
 in vec3 teNormal[];
+in vec3 tePosition[];
 
 out gl_PerVertex
 {
@@ -21,6 +22,7 @@ out gl_PerVertex
 };
 
 out vec3 gNormal;
+out vec3 gPosition;
 
 layout(std140, binding=1) uniform Params
 {
@@ -37,15 +39,24 @@ layout(std140, binding=1) uniform Params
 	int GridD;
 };
 
+void EmitV(in int idx, in vec3 disp, in vec3 nrm)
+{
+	gl_Position = gl_in[idx].gl_Position - vec4(disp, 0);
+	gPosition = tePosition[idx];
+	gNormal = nrm;
+	EmitVertex();	
+}
+
 void main()
 {
-	gNormal = teNormal[0];
-//	vec3 tmp = cross(normalize(gl_in[0]
 #if BASELINE
+	gNormal = teNormal[0];
 	gl_Position = gl_in[0].gl_Position;
 	EmitVertex();
+	gNormal = teNormal[0];
 	gl_Position = gl_in[1].gl_Position;
 	EmitVertex();
+	gNormal = teNormal[0];
 	gl_Position = gl_in[2].gl_Position;
 	EmitVertex();
 #else
@@ -57,7 +68,7 @@ void main()
 	vec3 line1 = normalize(p2 - p1);
 	vec3 line2 = normalize(p0 - p2);
 	
-	float lineWidth = 0.005;
+	float lineWidth = 0.007;
 	float hLineWidth = 0.5 * lineWidth;
 
 	vec3 n0 = vec3(line0.y, -line0.x, 0);
@@ -71,42 +82,19 @@ void main()
 	vec3 disp1 = n1 * p1.z * hLineWidth;
 	vec3 disp2 = n2 * p2.z * hLineWidth;
 	
-	gl_Position = gl_in[0].gl_Position - vec4(disp0, 0);
-	gNormal = -n0_;
-	EmitVertex();								
-	gl_Position = gl_in[0].gl_Position + vec4(disp0, 0);
-	gNormal = n0_;
-	EmitVertex();								
-	gl_Position = gl_in[1].gl_Position - vec4(disp0, 0);
-	gNormal = -n0_;
-	EmitVertex();								
-	gl_Position = gl_in[1].gl_Position + vec4(disp0, 0);
-	gNormal = n0_;
-	EmitVertex();								
-	gl_Position = gl_in[1].gl_Position - vec4(disp1, 0);
-	gNormal = -n1_;
-	EmitVertex();								
-	gl_Position = gl_in[1].gl_Position + vec4(disp1, 0);
-	gNormal = n1_;
-	EmitVertex();								
-	gl_Position = gl_in[2].gl_Position - vec4(disp1, 0);
-	gNormal = -n1_;
-	EmitVertex();								
-	gl_Position = gl_in[2].gl_Position + vec4(disp1, 0);
-	gNormal = n1_;
-	EmitVertex();								
-	gl_Position = gl_in[2].gl_Position - vec4(disp2, 0);
-	gNormal = -n2_;
-	EmitVertex();								
-	gl_Position = gl_in[2].gl_Position + vec4(disp2, 0);
-	gNormal = n2_;
-	EmitVertex();								
-	gl_Position = gl_in[0].gl_Position - vec4(disp2, 0);
-	gNormal = -n2_;
-	EmitVertex();								
-	gl_Position = gl_in[0].gl_Position + vec4(disp2, 0);
-	gNormal = n2_;
-	EmitVertex();
+	EmitV(0, -disp0, -n0_);
+	EmitV(0, disp0, n0_);
+	EmitV(1, -disp0, -n0_);
+	EmitV(1, disp0, n0_);
+	EmitV(1, -disp1, -n1_);
+	EmitV(1, disp1, n1_);
+	EmitV(2, -disp1, -n1_);
+	EmitV(2, disp1, n1_);
+	EmitV(2, -disp2, -n2_);
+	EmitV(2, disp2, n2_);
+	EmitV(0, -disp2, -n2_);
+	EmitV(0, disp2, n2_);
+
 #endif
 	EndPrimitive();
 }

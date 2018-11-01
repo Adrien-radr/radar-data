@@ -1,7 +1,9 @@
 #version 420
 
 //in vec4 tePositionEye;
-in vec3 gNormal;
+
+in vec3 teNormal;
+in vec3 tePosition;
 
 out vec4 color;
 
@@ -33,5 +35,7 @@ void main()
 	if(lw > 0) lw = 1;
 	float feather = (featherWidth - max(0, len - lineWidth))/featherWidth;
 #endif
-	color = vec4(0.05,0.05,0.05,1);
+	float len = length(tePosition);
+	float lenCol = 0.5 + 0.5*10*(teNormal.z-1.0);
+	color = vec4(sqrt(teNormal.x),teNormal.y,0.8*lenCol*lenCol,1);
 }

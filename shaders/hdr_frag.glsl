@@ -1,7 +1,7 @@
 #version 400
 #define PI 3.14159265359
 
-//#define ACCURATE_GAMMA
+#define ACCURATE_GAMMA 0
 
 #define FXAA_PC 1
 #define FXAA_GLSL_130 1
@@ -1140,7 +1140,7 @@ vec3 ToneMapping(vec3 Col, float Exposure)
 vec3 GammaCorrection(vec3 Col)
 {
 // NOTE - The Y <= 0.003.. doesnt work, this is not right, fix it
-#ifdef ACCURATE_GAMMA
+#if ACCURATE_GAMMA
     float Y = dot(Col, vec3(0.2126, 0.7152, 0.0722));
     vec3 srgblo = Col * 12.92;
     vec3 srgbhi = (pow(abs(Col), vec3(1.0/2.4)) * 1.055) - 0.055;
@@ -1153,7 +1153,7 @@ vec3 GammaCorrection(vec3 Col)
 
 vec3 PostProcess(vec3 Col, float Exposure)
 {
-    Col = ToneMapping(Col, Exposure);
+//    Col = ToneMapping(Col, Exposure);
     Col = GammaCorrection(Col);
     return Col;
 }
@@ -1207,7 +1207,7 @@ vec3 fxaa(sampler2D tex, float Exposure, vec2 fragCoord, vec2 resolution,
 #endif
 void main()
 {
-	#if 0 
+	#if 1
     
     // NOTE - this uses the avg luminance from the current frame for automatic exposure.
     // In practice it is better to keep an histogram of it through frames to avoid flickering.
@@ -1225,10 +1225,10 @@ void main()
 
 //    vec3 hdrColor = fxaa(HDRFB, Exposure, gl_FragCoord.xy, Resolution, v_rgbNW, v_rgbNE, v_rgbSW, v_rgbSE, v_rgbM);
 	vec2 pos = gl_FragCoord.xy / Resolution;
-	vec2 sampling = 1 / vec2(0,1);
+	vec2 sampling = 1 / vec2(1280,720);
 	vec4 dummy4 = vec4(0,0,0,0);
 
-	float fxaaQualitySubpix = 0.75;  // [0..1], default 0.75
+	float fxaaQualitySubpix = 0.25;  // [0..1], default 0.75
     float fxaaQualityEdgeThreshold = 0.166;  // [0.125..0.33], default 0.166
     float fxaaQualityEdgeThresholdMin = 0.02;//0.0625; // ?
 
