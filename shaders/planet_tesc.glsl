@@ -1,7 +1,7 @@
 #version 420
 #define LOD 1
 #define QUADSPHERE_PARAM 0
-#define MAX_TESS 16.0
+#define MAX_TESS 8.0
 
 layout (vertices=1) out;
 
@@ -44,10 +44,25 @@ float GetTesselationLevel(float dist0, float dist1)
 	return max(1.0, min(MAX_TESS, MAX_TESS / exp(1.0*avgDist)));
 }
 
+float RoundToNextPow2(float f)
+{
+	int i = int(max(1.0,f));
+	i--;
+	i |= i >> 1;
+	i |= i >> 2;
+	i |= i >> 4;
+	i |= i >> 8;
+	i |= i >> 16;
+	i++;
+	return float(i);
+}
+
 float GetRadiusTessLevel(float theta)
 {
 	float th = max(0.0, theta);
-	return max(1.0, MAX_TESS * max(0.0, th*th));
+	float tessLvl = MAX_TESS * max(0.0, th*th);
+	tessLvl = RoundToNextPow2(tessLvl);
+	return max(1.0, tessLvl);
 }
 
 void main()
@@ -82,7 +97,7 @@ void main()
 			// between camera and vertex relative to the origin
 			vec3 StaticPosition = vec3(0,1,0);
 			vec3 OrbitPosition = normalize(vec3(cos(Time), sin(-Time*0.3)*cos(Time*0.5), sin(Time)));
-			vec3 UsedPosition = StaticPosition;
+			vec3 UsedPosition = CameraPosition;
 
 			float radius = length(UsedPosition);
 			vec3 dir = UsedPosition / radius;

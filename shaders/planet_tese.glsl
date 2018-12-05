@@ -1,6 +1,6 @@
 #version 420
 #define PI 3.14157
-layout (quads, equal_spacing, cw) in;
+layout (quads, fractional_even_spacing, cw) in;
 
 in gl_PerVertex
 {
@@ -40,22 +40,17 @@ void main()
 {
 	vec3 pos = tePosition = gl_in[0].gl_Position.xyz;
 	vec2 gPos = gl_TessCoord.xy * TileSize.xz;
+
+	// Translate vertex according to per-cubeface grid parameterization
 	vec3 cf = tcCubeFace[0];
 	pos += vec3((cf.y+cf.z)*gPos.x, cf.x*gPos.x+cf.z*gPos.y, (cf.y+cf.x)*gPos.y);
 
 	tePosition = normalize(pos);
-	vec2 sph = vec2(acos(tePosition.y/sqrt(tePosition.y*tePosition.y + tePosition.x*tePosition.x + tePosition.z*tePosition.z)),
+	vec2 sph = vec2(acos(tePosition.y/
+						 sqrt(tePosition.y*tePosition.y + tePosition.x*tePosition.x + tePosition.z*tePosition.z)),
 					atan(tePosition.z, tePosition.x));
-	tePosition += tePosition * 0.05 * sin(2.f*PI*Time+8.f*sph.x+4.f*sph.y);// * sin(2.f * PI * Time * 0.1*sph.y);
+	tePosition += tePosition * 0.05 * sin(2.f*PI*Time+8.f*sph.x+4.f*sph.y);
 
-//	float xydep = 1.5;
-//	float scale = 0.2;
-//	tePosition.y += scale *(sin(0.4*xydep*tePosition.x+Time*1.1) * 
-//							sin(1.4*xydep*tePosition.z+Time*0.01)*
-//							sin(0.2*xydep*tePosition.x*tePosition.z+Time)   );
-
-//	tePositionEye = ViewMatrix * vec4(tePosition, 1.0);
-	vec2 uv = tePosition.xz;//gl_TessCoord.xy/TileSize.xz;//tcTexcoord[0];// + (vec2(1.0/GridW, 1.0/GridH) * gl_TessCoord.xy);	
 	float sx = sph.x/(PI);
 	float sy = (sph.y+PI)/(2.0*PI);
 	vec3 col = vec3(sx, 1.f - sx, length(tePosition));
