@@ -571,6 +571,7 @@ void main()
         ComputeSingleScatteringTexture(Tex0, vec3(gl_FragCoord.xy, ScatteringLayer + 0.5), R, M);
         out0 = vec4(R, 1.0); // delta raleigh
         out1 = vec4(M, 1.0); // delta mie
+		// if using luminance work, need to save the below out2 in luminance by multiplying R and M by the radToLum matrix
         out2 = vec4(R, M.r); // scattering
     }
     else if(ProgramUnit == 3)

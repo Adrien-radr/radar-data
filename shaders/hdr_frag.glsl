@@ -1153,7 +1153,7 @@ vec3 GammaCorrection(vec3 Col)
 
 vec3 PostProcess(vec3 Col, float Exposure)
 {
-//    Col = ToneMapping(Col, Exposure);
+    Col = ToneMapping(Col, Exposure);
     Col = GammaCorrection(Col);
     return Col;
 }
@@ -1211,19 +1211,22 @@ void main()
     
     // NOTE - this uses the avg luminance from the current frame for automatic exposure.
     // In practice it is better to keep an histogram of it through frames to avoid flickering.
-    vec3 Mean = textureLod(HDRFB, v_texcoord, MipmapQueryLevel).rgb;
-    float Y = log(1.0+dot(Mean, vec3(0.2126, 0.7152, 0.0722)));
 
-    float EV100 = ComputeEV100FromAvgLuminance(Y);
+    //vec3 Mean = textureLod(HDRFB, v_texcoord, MipmapQueryLevel).rgb;
+    //float Y = log(1.0+dot(Mean, vec3(0.2126, 0.7152, 0.0722)));
+
+    //float EV100 = ComputeEV100FromAvgLuminance(Y);
     // NOTE - arbitrary value for the min/max Exposure here. Probably this should be derived 
     // according to time of day / weather, etc
-    float Exposure = 1.0;//min(10.0,max(0.001,ConvertEV100ToExposure(EV100)));
+    //float Exposure = 1000.0;//min(10.0,max(0.001,ConvertEV100ToExposure(EV100)));
 
     // FXAA
-    vec2 v_rgbNE, v_rgbNW, v_rgbSW, v_rgbSE, v_rgbM;
-    GetTexcoords(gl_FragCoord.xy, v_rgbNE, v_rgbNW, v_rgbSE, v_rgbSW, v_rgbM);
+//    vec2 v_rgbNE, v_rgbNW, v_rgbSW, v_rgbSE, v_rgbM;
+//    GetTexcoords(gl_FragCoord.xy, v_rgbNE, v_rgbNW, v_rgbSE, v_rgbSW, v_rgbM);
 
 //    vec3 hdrColor = fxaa(HDRFB, Exposure, gl_FragCoord.xy, Resolution, v_rgbNW, v_rgbNE, v_rgbSW, v_rgbSE, v_rgbM);
+
+
 	vec2 pos = gl_FragCoord.xy / Resolution;
 	vec2 sampling = 1 / vec2(1280,720);
 	vec4 dummy4 = vec4(0,0,0,0);
@@ -1236,14 +1239,13 @@ void main()
 									fxaaQualitySubpix, fxaaQualityEdgeThreshold, fxaaQualityEdgeThresholdMin,
 									0, 0, 0, dummy4).xyz;
 	#else
-	float Exposure = 1.0;
     vec3 hdrColor = texture(HDRFB, v_texcoord).xyz;
 	#endif
 
     // Remove the auto exposure since its fucking things up, need a better more progressive way of doing i
     //float Exp = 1.00005;
 //    float Exp = 1.0;
-    float Exp = Exposure;
+    float Exp = 10.0;// Exposure;
 
     // Tone mapping and Gamma correction
     hdrColor = PostProcess(hdrColor, Exp);
