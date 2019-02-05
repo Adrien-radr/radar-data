@@ -523,7 +523,8 @@ vec3 WaterShading(in vec3 P, in float depth, in vec3 N, in vec3 PlanetN, in vec3
 	float PNdotL = max(0.0, dot(PlanetN, L));
 	float PNdotV = max(0.0, min(1.0, dot(PlanetN, V)));
 	
-    float roughness = 0.22;
+	// change roughness depending on depth (more diffuse as we get farther from the surface)
+    float roughness = 0.2;
     vec3 f0 = vec3(roughness);
 
     vec3 F = FresnelSchlickRoughness(NdotV, f0, roughness);
@@ -547,12 +548,25 @@ vec3 WaterShading(in vec3 P, in float depth, in vec3 N, in vec3 PlanetN, in vec3
     return Ambient + Transmittance * (Diffuse + Specular) * max(0.0,dot(L, PlanetN));
 }
 
+vec2 CartesianToSpherical(in vec3 V)
+{
+	return vec2(acos(V.y/sqrt(V.x*V.x + V.y*V.y + V.z*V.z)), atan2(V.z, V.x));
+}
+
+vec3 NewGetFractalNormal(in vec2 sphP, in vec2 sphSP, in vec3 N)
+{
+	vec3 n = N * sin(Time + 8.f * sphSP.x + 4.f * sphSP.y);
+//	n.x += 1*sin( 1 * Time * 0.1*(sphSP.x) + sphSP.x);
+//	n.z += 1*sin( 1 * Time * 0.1*(sphSP.y) + sphSP.y);
+	return n;
+}
+
 void main()
 {
     vec3 contrib = vec3(0);
 
     vec3 E = normalize(v_eyeRay);
-    vec3 EarthCenter = vec3(0,-Atmosphere.BottomRadius, 0);
+    vec3 EarthCenter = vec3(0, 0, 0);
     vec3 P = v_CameraPosition;
     vec3 p = P - EarthCenter;
     float PdotV = dot(p, E);
@@ -572,9 +586,17 @@ void main()
         vec3 Point = P + E * Depth;
         vec3 N = normalize(Point - EarthCenter);
 
-        vec3 ShadingPoint = 1000*Point; // ajusted for km scale
+
+		vec2 sphP = CartesianToSpherical(normalize(p));
+		vec2 sphSP = CartesianToSpherical(N);
+
+        vec3 ShadingPoint = Point;
+//		ShadingPoint -= N * Atmosphere.BottomRadius;
+		ShadingPoint = 1000 * ShadingPoint; // ajusted for km scale
+
         vec3 FractN = GetFractalNormal(ShadingPoint, N);
-        FractN = mix(FractN, N, 1.0 - exp(-Depth * 3.0));
+//		vec3 FractN = NewGetFractalNormal(sphP, sphSP, N);
+//        FractN = mix(FractN, N, 1.0 - exp(-Depth * 3.0));
         FractN = normalize(FractN);
 //		FractN = N;
 
@@ -582,12 +604,14 @@ void main()
         vec3 SunIrradiance = GetSunAndSkyIrradiance(Point - EarthCenter, FractN, L, SkyIrradiance);
         vec3 GroundRadiance = kGroundAlbedo * (1.0/PI) * (SunIrradiance + SkyIrradiance);
 
+		vec3 NViz = max(vec3(0,0,0), FractN);//(N + vec3(1,1,1)) / 2.0;
+
 //        vec3 Inscattering = GetSkyRadianceToPoint(p, Point - EarthCenter, L, Transmittance);
 //        contrib = GroundRadiance * Transmittance + Inscattering;
 		vec3 R = reflect(E, FractN);
         vec3 ReflectedSkyRadiance = max(vec3(0), GetSkyRadiance(Point-EarthCenter, R, Transmittance));
 		vec3 Water = WaterShading(ShadingPoint, Depth, FractN, N, E, L, ReflectedSkyRadiance, SolarRadiance, kGroundAlbedo, Transmittance);
-        contrib = Water;//ReflectedSkyRadiance + GroundRadiance * Transmittance;
+        contrib = Water;// + Inscattering;//ReflectedSkyRadiance + GroundRadiance * Transmittance;
                   //+Transmittance * 
 
     }
