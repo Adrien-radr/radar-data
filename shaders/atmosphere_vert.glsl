@@ -4,6 +4,7 @@ layout(location=0) in vec2 in_position;
 layout(location=1) in vec2 in_texcoord;
 
 uniform mat4 ViewMatrix;
+uniform mat4 InvViewMatrix;
 uniform mat4 ProjMatrix;
 uniform vec3 SunDirection;
 uniform float CameraScale;
@@ -15,7 +16,6 @@ out vec3 v_CameraPosition;
 
 void main()
 {
-    mat4 InvViewMatrix = inverse(ViewMatrix);
     vec4 sunUV = ProjMatrix * ViewMatrix * vec4(SunDirection, 0.0);
 
     v_texcoord = in_texcoord;
